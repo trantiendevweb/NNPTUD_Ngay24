@@ -1,77 +1,141 @@
-async function getData() {
-    let res = await fetch('http://localhost:3000/posts');
-    let data = await res.json();
-    let body = document.getElementById('body-table');
-    body.innerHTML = '';
-    for (const product of data) {
-        body.innerHTML += `
-       <tr>
-            <td>${product.id}</td>
-            <td>${product.title}</td>
-            <td>${product.views}</td>
-            <td><input type='submit' value='delete' onclick='Delete(${product.id})'/></td>
-       </tr>`
+const express = require('express')
+const app = express()
+const port = 3000
+app.use(express.json())
+let data = [
+    {
+        "id": "1",
+        "title": "a title",
+        "views": 100
+    },
+    {
+        "id": "2",
+        "title": "another title",
+        "views": 200
+    },
+    {
+        "id": "3",
+        "title": "another title",
+        "views": 200
+    },
+    {
+        "id": "4",
+        "title": "chu tu",
+        "views": 900
+    },
+    {
+        "id": "5",
+        "title": "to",
+        "views": 900
+    },
+    {
+        "id": "6",
+        "title": "hahah",
+        "views": 999
+    },
+    {
+        "id": "7",
+        "title": "hehehhe",
+        "views": 999
+    },
+    {
+        "id": "99",
+        "title": "909999",
+        "views": 99
+    },
+    {
+        "id": "9999",
+        "title": "99",
+        "views": 999,
+        "isDeleted": true
     }
-}
-async function Save() {
-    let id = document.getElementById('txt_id').value;
-    let title = document.getElementById('txt_title').value;
-    let views = document.getElementById('txt_views').value;
-    if (id == '') {
-        let res = await fetch('http://localhost:3000/posts');
-        let data = await res.json();
-        let ids = data.map(function (e) {
-            return Number.parseInt(e.id)
-        })
-        let max = Math.max(...ids);
-        id = (max + 1) + "";
-    }
-    let getItem = await fetch('http://localhost:3000/posts/' + id);
-    if (getItem.ok) {
-        let res = await fetch('http://localhost:3000/posts/' + id,
-            {
-                method: 'PUT',
-                headers: {
-                    'Content-type': 'application/json'
-                },
-                body: JSON.stringify(
-                    {
-                        title: title,
-                        views: views
-                    }
-                )
-            }
-        )
-        if (res.ok) {
-            console.log("thanh cong");
-        }
-    } else {
-        let res = await fetch('http://localhost:3000/posts',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-type': 'application/json'
-                },
-                body: JSON.stringify(
-                    {
-                        id: id,
-                        title: title,
-                        views: views
-                    }
-                )
-            }
-        )
-        if (res.ok) {
-            console.log("thanh cong");
-        }
-    }
-}
-async function Delete(id) {
-    let res = await fetch('http://localhost:3000/posts/' + id, {
-        method: 'delete'
+]
+//HTTP REQUEST ->get,post,put,delete
+app.get('/api/v1/products', (req, res) => {
+    let titleQ = req.query.title ? req.query.title : '';
+    let maxView = req.query.maxview ? req.query.maxview : 10000;
+    let minView = req.query.minview ? req.query.minview : 0;
+    let limit = req.query.limit ? req.query.limit : 5;
+    let page = req.query.page ? req.query.page : 1;
+    let result = data.filter(function (e) {
+        return !(e.isDeleted) && e.title.includes(titleQ)
+            && e.views >= minView && e.views <= maxView
     })
-    if (res.ok) {
-        console.log("xoa thanh cong");
+    result = result.splice(limit * (page - 1), limit)
+    res.send(result)
+})
+app.get('/api/v1/products/:id', (req, res) => {
+    let id = req.params.id;
+    let result = data.filter(function (e) {
+        return !(e.isDeleted) && e.id == id
+    })
+    if (result.length > 0) {
+        res.send(result[0])
+    } else {
+        res.status(404).send({
+            message: "ID NOT FOUND"
+        })
     }
+})
+//post -> create
+app.post('/api/v1/products/', (req, res) => {
+    let newItem = {
+        id: genID(data) + "",
+        title: req.body.title,
+        views: req.body.views
+    }
+    data.push(newItem);
+    res.send(newItem)
+})
+//put - >edit
+app.put('/api/v1/products/:id', (req, res) => {
+    let id = req.params.id;
+    let getProduct = data.filter(
+        function (e) {
+            return e.id == id && !e.isDeleted
+        }
+    )
+    if (getProduct.length > 0) {
+        getProduct = getProduct[0]
+        let keys = Object.keys(req.body);
+        for (const key of keys) {
+            if (getProduct[key]) {
+                getProduct[key] = req.body[key]
+            }
+        }
+        res.send(getProduct)
+    } else {
+        res.status(404).send({
+            message: "id not found"
+        })
+    }
+})
+//delete -> xoa
+app.delete('/api/v1/products/:id', (req, res) => {
+    let id = req.params.id;
+    let getProduct = data.filter(
+        function (e) {
+            return e.id == id && !e.isDeleted
+        }
+    )
+    if (getProduct.length > 0) {
+        getProduct = getProduct[0]
+        getProduct.isDeleted = true;
+        res.send(getProduct)
+    } else {
+        res.status(404).send({
+            message: "id not found"
+        })
+    }
+})
+app.listen(port, () => {
+    console.log(`Example app listening on port ${port}`)
+})
+function genID(data) {
+    let ids = data.map(
+        function (e) {
+            return Number.parseInt(e.id)
+        }
+    )
+    return Math.max(...ids) + 1
 }
-getData();
