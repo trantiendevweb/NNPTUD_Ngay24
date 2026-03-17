@@ -4,7 +4,7 @@ let jwt = require('jsonwebtoken')
 let fs = require('fs')
 
 module.exports = {
-    CreateAnUser: async function (username, password, email, role, fullName, avatarUrl, status, loginCount) {
+    CreateAnUser: async function (username, password, email, role, session, fullName, avatarUrl, status, loginCount) {
         let newItem = new userModel({
             username: username,
             password: password,
@@ -15,7 +15,7 @@ module.exports = {
             role: role,
             loginCount: loginCount
         });
-        await newItem.save();
+        await newItem.save({ session });
         return newItem;
     },
     GetAllUser: async function () {
