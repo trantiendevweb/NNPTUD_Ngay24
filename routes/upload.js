@@ -62,7 +62,7 @@ router.post('/excel', uploadExcel.single('file'), async function (req, res, next
             let stock = element.getCell(5);
             console.log(sku+"-"+title+"-"+category+"-"+price+"-"+stock);
         }
-        fs.unlinkSync(pathFile)
+        //fs.unlinkSync(pathFile)
     }
 })
 
