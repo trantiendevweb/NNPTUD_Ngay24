@@ -1,15 +1,32 @@
 var express = require("express");
 var router = express.Router();
+let fs = require('fs/promises')
 let bcrypt = require('bcrypt')
 let userModel = require("../schemas/users");
 let { validatedResult, CreateAnUserValidator, ModifyAnUserValidator } = require('../utils/validator')
 let userController = require('../controllers/users')
 let { CheckLogin, checkRole } = require('../utils/authHandler')
+let { uploadExcel } = require('../utils/uploadHandler')
 
 
 router.get("/", CheckLogin, checkRole("ADMIN","MODERATOR"), async function (req, res, next) {//ADMIN
   let users = await userController.GetAllUser()
   res.send(users);
+});
+
+router.post("/import", uploadExcel.single('file'), async function (req, res, next) {
+  if (!req.file) {
+    return res.status(400).send({ message: "file not found" });
+  }
+
+  try {
+    let result = await userController.ImportUsersFromExcel(req.file.path);
+    res.send(result);
+  } catch (err) {
+    res.status(400).send({ message: err.message });
+  } finally {
+    await fs.unlink(req.file.path).catch(function () { });
+  }
 });
 
 router.get("/:id", async function (req, res, next) {
